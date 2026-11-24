@@ -1,0 +1,672 @@
+from datetime import date, datetime
+
+
+
+
+class Persona:
+
+    def __init__(self, identificacion, nombre, fecha_nacimiento):
+        self.identificacion = identificacion
+        self.nombre = nombre
+        self.fecha_nacimiento = datetime.strptime(
+            fecha_nacimiento, "%Y-%m-%d"
+        ).date()
+
+    def calcular_edad(self):
+        hoy = date.today()
+        edad = hoy.year - self.fecha_nacimiento.year
+
+        if (hoy.month, hoy.day) < (
+            self.fecha_nacimiento.month,
+            self.fecha_nacimiento.day
+        ):
+            edad -= 1
+
+        return edad
+
+    def esMayorEdad(self):
+        return self.calcular_edad() >= 18
+
+    def mostrar(self):
+        print(f"Identificación: {self.identificacion}")
+        print(f"Nombre: {self.nombre}")
+        print(f"Fecha de nacimiento: {self.fecha_nacimiento}")
+        print(f"Edad: {self.calcular_edad()} años")
+
+        if self.esMayorEdad():
+            print("Mayor de edad: Sí")
+        else:
+            print("Mayor de edad: No")
+
+
+
+
+class Horarios:
+
+    DIAS_VALIDOS = ["Lun", "Mar", "Mie", "Jue", "Vie"]
+    HORAS_VALIDAS = range(6, 19)
+
+    def __init__(self, dia, hora, disponible=True):
+        if dia not in self.DIAS_VALIDOS:
+            raise ValueError(
+                "Día inválido. Use Lun, Mar, Mie, Jue o Vie."
+            )
+
+        if hora not in self.HORAS_VALIDAS:
+            raise ValueError("La hora debe estar entre 6 y 18.")
+
+        self.dia = dia
+        self.hora = hora
+        self.disponible = disponible
+
+    def esta_disponible(self):
+        return self.disponible
+
+    def cambiar_disponibilidad(self, estado):
+        self.disponible = estado
+
+    def mostrar(self):
+        estado = "Disponible" if self.disponible else "Ocupado"
+        print(f"{self.dia} - {self.hora}:00 - {estado}")
+
+
+
+class Medico(Persona):
+
+    def __init__(
+        self, identificacion, nombre, fecha_nacimiento,
+        especialidad, sueldo, tipo_medico
+    ):
+        super().__init__(
+            identificacion, nombre, fecha_nacimiento
+        )
+
+        self.especialidad = especialidad
+        self.sueldo = sueldo
+        self.tipo_medico = tipo_medico
+        self.horarios = []
+        self.pacientes = []
+
+    def calcularSalarioAnual(self):
+        return self.sueldo * 12
+
+    def agregar_horario(self, horario):
+        if not isinstance(horario, Horarios):
+            raise TypeError("Debe ingresar un objeto Horarios.")
+
+        for existente in self.horarios:
+            if existente.dia == horario.dia and existente.hora == horario.hora:
+                raise ValueError("Ese horario ya está registrado.")
+
+        self.horarios.append(horario)
+
+    def verificarDisponibilidad(self, dia, hora):
+        for horario in self.horarios:
+            if horario.dia == dia and horario.hora == hora:
+                return horario.esta_disponible()
+
+        return False
+
+    def agregar_paciente(self, paciente):
+        if paciente not in self.pacientes:
+            self.pacientes.append(paciente)
+
+    def mostrar_horarios(self):
+        print(f"\nHorarios del médico {self.nombre}:")
+
+        if not self.horarios:
+            print("No tiene horarios registrados.")
+            return
+
+        for horario in self.horarios:
+            horario.mostrar()
+
+    def mostrar_pacientes(self):
+        print(f"\nPacientes del médico {self.nombre}:")
+
+        if not self.pacientes:
+            print("No tiene pacientes registrados.")
+            return
+
+        for paciente in self.pacientes:
+            print(
+                f"- {paciente.nombre} "
+                f"(ID: {paciente.identificacion})"
+            )
+
+    def mostrar(self):
+        print("\n= DATOS DEL MÉDICO =")
+        super().mostrar()
+        print(f"Especialidad: {self.especialidad}")
+        print(f"Tipo de médico: {self.tipo_medico}")
+        print(f"Sueldo mensual: ${self.sueldo:,.0f}")
+        print(
+            f"Salario anual: "
+            f"${self.calcularSalarioAnual():,.0f}"
+        )
+
+
+
+
+class Paciente(Persona):
+
+    def __init__(
+        self, identificacion, nombre, fecha_nacimiento,
+        estrato, genero, estado_civil, direccion,
+        telefono, codigo_postal, nif, seguridad_social,
+        medico
+    ):
+        super().__init__(
+            identificacion, nombre, fecha_nacimiento
+        )
+
+        if not isinstance(medico, Medico):
+            raise TypeError("Debe asignarse un objeto Medico.")
+
+        self.estrato = estrato
+        self.genero = genero
+        self.estado_civil = estado_civil
+        self.direccion = direccion
+        self.telefono = telefono
+        self.codigo_postal = codigo_postal
+        self.nif = nif
+        self.seguridad_social = seguridad_social
+        self.medico = medico
+
+        self.medico.agregar_paciente(self)
+
+    def solicitarCitas(self, dia, hora):
+        print(f"\nSolicitud de cita para {self.nombre}")
+        print(f"Médico: {self.medico.nombre}")
+        print(f"Día: {dia}")
+        print(f"Hora: {hora}:00")
+
+        for horario in self.medico.horarios:
+            if horario.dia == dia and horario.hora == hora:
+
+                if horario.esta_disponible():
+                    horario.cambiar_disponibilidad(False)
+
+                    print("RESULTADO: Cita asignada correctamente.")
+                    print("El horario ahora está ocupado.")
+                    return True
+
+                print("RESULTADO: El horario está ocupado.")
+                return False
+
+        print("RESULTADO: El médico no tiene ese horario registrado.")
+        return False
+
+    def mostrar(self):
+        print("\n= DATOS DEL PACIENTE =")
+        super().mostrar()
+        print(f"Estrato: {self.estrato}")
+        print(f"Género: {self.genero}")
+        print(f"Estado civil: {self.estado_civil}")
+        print(f"Dirección: {self.direccion}")
+        print(f"Teléfono: {self.telefono}")
+        print(f"Código postal: {self.codigo_postal}")
+        print(f"NIF: {self.nif}")
+        print(f"Seguridad social: {self.seguridad_social}")
+        print(f"Médico asignado: {self.medico.nombre}")
+
+
+
+
+def main():
+
+    print("=" * 55)
+    print("       SISTEMA DE CITAS - CENTRO DE SALUD")
+    print("=" * 55)
+
+    
+    medico1 = Medico(
+        "M001",
+        "Laura Gomez",
+        "1982-04-12",
+        "Medicina general",
+        4500000,
+        "Titular"
+    )
+
+   
+    horario1 = Horarios("Lun", 8, True)
+    horario2 = Horarios("Mar", 10, True)
+    horario3 = Horarios("Mie", 9, False)
+
+    
+    medico1.agregar_horario(horario1)
+    medico1.agregar_horario(horario2)
+    medico1.agregar_horario(horario3)
+
+   
+    paciente1 = Paciente(
+        "P001",
+        "Andres Perez",
+        "2001-11-20",
+        3,
+        "Masculino",
+        "Soltero",
+        "Calle 10 # 20-30",
+        "3001234567",
+        "680001",
+        "NIF001",
+        "SS001",
+        medico1
+    )
+
+    paciente2 = Paciente(
+        "P002",
+        "Maria Rodriguez",
+        "1995-06-15",
+        2,
+        "Femenino",
+        "Soltera",
+        "Carrera 15 # 30-40",
+        "3101234567",
+        "680002",
+        "NIF002",
+        "SS002",
+        medico1
+    )
+
+    
+    print("\n\n***** PRUEBA DE PERSONA *****")
+    medico1.mostrar()
+
+    
+    print("\n\n***** PRUEBA DE MEDICO *****")
+    print(
+        "Salario anual:",
+        f"${medico1.calcularSalarioAnual():,.0f}"
+    )
+    medico1.mostrar_horarios()
+
+    
+    print("\n\n***** PRUEBA DE HORARIOS *****")
+    horario1.mostrar()
+    horario2.mostrar()
+    horario3.mostrar()
+
+    
+    print("\n\n***** PRUEBA DE PACIENTE *****")
+    paciente1.mostrar()
+    paciente2.mostrar()
+
+   
+    print("\n\n***** RELACION MEDICO-PACIENTES *****")
+    medico1.mostrar_pacientes()
+
+    
+    print("\n\n***** VERIFICAR DISPONIBILIDAD *****")
+    print(
+        "Lunes a las 8:",
+        medico1.verificarDisponibilidad("Lun", 8)
+    )
+
+    
+    print("\n\n***** SOLICITAR CITA DISPONIBLE *****")
+    paciente1.solicitarCitas("Lun", 8)
+
+  
+    print("\n\n***** VERIFICAR HORARIO RESERVADO *****")
+    print(
+        "Lunes a las 8:",
+        medico1.verificarDisponibilidad("Lun", 8)
+    )
+
+    
+    print("\n\n***** INTENTAR RESERVAR HORARIO OCUPADO *****")
+    paciente2.solicitarCitas("Lun", 8)
+
+    
+    print("\n\n***** HORARIO NO REGISTRADO *****")
+    paciente2.solicitarCitas("Jue", 11)
+
+    
+    print("\n\n***** ESTADO FINAL DE LOS HORARIOS *****")
+    medico1.mostrar_horarios()
+
+    print("\nFIN DEL PROGRAMA")
+
+
+
+if __name__ == "__main__":
+    main()
+
+
+from datetime import date, datetime
+
+
+
+
+class Persona:
+
+    def __init__(self, identificacion, nombre, fecha_nacimiento):
+        self.identificacion = identificacion
+        self.nombre = nombre
+        self.fecha_nacimiento = datetime.strptime(
+            fecha_nacimiento, "%Y-%m-%d"
+        ).date()
+
+    def calcular_edad(self):
+        hoy = date.today()
+        edad = hoy.year - self.fecha_nacimiento.year
+
+        if (hoy.month, hoy.day) < (
+            self.fecha_nacimiento.month,
+            self.fecha_nacimiento.day
+        ):
+            edad -= 1
+
+        return edad
+
+    def esMayorEdad(self):
+        return self.calcular_edad() >= 18
+
+    def mostrar(self):
+        print(f"Identificación: {self.identificacion}")
+        print(f"Nombre: {self.nombre}")
+        print(f"Fecha de nacimiento: {self.fecha_nacimiento}")
+        print(f"Edad: {self.calcular_edad()} años")
+
+        if self.esMayorEdad():
+            print("Mayor de edad: Sí")
+        else:
+            print("Mayor de edad: No")
+
+
+
+
+class Horarios:
+
+    DIAS_VALIDOS = ["Lun", "Mar", "Mie", "Jue", "Vie"]
+    HORAS_VALIDAS = range(6, 19)
+
+    def __init__(self, dia, hora, disponible=True):
+        if dia not in self.DIAS_VALIDOS:
+            raise ValueError(
+                "Día inválido. Use Lun, Mar, Mie, Jue o Vie."
+            )
+
+        if hora not in self.HORAS_VALIDAS:
+            raise ValueError("La hora debe estar entre 6 y 18.")
+
+        self.dia = dia
+        self.hora = hora
+        self.disponible = disponible
+
+    def esta_disponible(self):
+        return self.disponible
+
+    def cambiar_disponibilidad(self, estado):
+        self.disponible = estado
+
+    def mostrar(self):
+        estado = "Disponible" if self.disponible else "Ocupado"
+        print(f"{self.dia} - {self.hora}:00 - {estado}")
+
+
+
+class Medico(Persona):
+
+    def __init__(
+        self, identificacion, nombre, fecha_nacimiento,
+        especialidad, sueldo, tipo_medico
+    ):
+        super().__init__(
+            identificacion, nombre, fecha_nacimiento
+        )
+
+        self.especialidad = especialidad
+        self.sueldo = sueldo
+        self.tipo_medico = tipo_medico
+        self.horarios = []
+        self.pacientes = []
+
+    def calcularSalarioAnual(self):
+        return self.sueldo * 12
+
+    def agregar_horario(self, horario):
+        if not isinstance(horario, Horarios):
+            raise TypeError("Debe ingresar un objeto Horarios.")
+
+        for existente in self.horarios:
+            if existente.dia == horario.dia and existente.hora == horario.hora:
+                raise ValueError("Ese horario ya está registrado.")
+
+        self.horarios.append(horario)
+
+    def verificarDisponibilidad(self, dia, hora):
+        for horario in self.horarios:
+            if horario.dia == dia and horario.hora == hora:
+                return horario.esta_disponible()
+
+        return False
+
+    def agregar_paciente(self, paciente):
+        if paciente not in self.pacientes:
+            self.pacientes.append(paciente)
+
+    def mostrar_horarios(self):
+        print(f"\nHorarios del médico {self.nombre}:")
+
+        if not self.horarios:
+            print("No tiene horarios registrados.")
+            return
+
+        for horario in self.horarios:
+            horario.mostrar()
+
+    def mostrar_pacientes(self):
+        print(f"\nPacientes del médico {self.nombre}:")
+
+        if not self.pacientes:
+            print("No tiene pacientes registrados.")
+            return
+
+        for paciente in self.pacientes:
+            print(
+                f"- {paciente.nombre} "
+                f"(ID: {paciente.identificacion})"
+            )
+
+    def mostrar(self):
+        print("\n= DATOS DEL MÉDICO =")
+        super().mostrar()
+        print(f"Especialidad: {self.especialidad}")
+        print(f"Tipo de médico: {self.tipo_medico}")
+        print(f"Sueldo mensual: ${self.sueldo:,.0f}")
+        print(
+            f"Salario anual: "
+            f"${self.calcularSalarioAnual():,.0f}"
+        )
+
+
+
+
+class Paciente(Persona):
+
+    def __init__(
+        self, identificacion, nombre, fecha_nacimiento,
+        estrato, genero, estado_civil, direccion,
+        telefono, codigo_postal, nif, seguridad_social,
+        medico
+    ):
+        super().__init__(
+            identificacion, nombre, fecha_nacimiento
+        )
+
+        if not isinstance(medico, Medico):
+            raise TypeError("Debe asignarse un objeto Medico.")
+
+        self.estrato = estrato
+        self.genero = genero
+        self.estado_civil = estado_civil
+        self.direccion = direccion
+        self.telefono = telefono
+        self.codigo_postal = codigo_postal
+        self.nif = nif
+        self.seguridad_social = seguridad_social
+        self.medico = medico
+
+        self.medico.agregar_paciente(self)
+
+    def solicitarCitas(self, dia, hora):
+        print(f"\nSolicitud de cita para {self.nombre}")
+        print(f"Médico: {self.medico.nombre}")
+        print(f"Día: {dia}")
+        print(f"Hora: {hora}:00")
+
+        for horario in self.medico.horarios:
+            if horario.dia == dia and horario.hora == hora:
+
+                if horario.esta_disponible():
+                    horario.cambiar_disponibilidad(False)
+
+                    print("RESULTADO: Cita asignada correctamente.")
+                    print("El horario ahora está ocupado.")
+                    return True
+
+                print("RESULTADO: El horario está ocupado.")
+                return False
+
+        print("RESULTADO: El médico no tiene ese horario registrado.")
+        return False
+
+    def mostrar(self):
+        print("\n= DATOS DEL PACIENTE =")
+        super().mostrar()
+        print(f"Estrato: {self.estrato}")
+        print(f"Género: {self.genero}")
+        print(f"Estado civil: {self.estado_civil}")
+        print(f"Dirección: {self.direccion}")
+        print(f"Teléfono: {self.telefono}")
+        print(f"Código postal: {self.codigo_postal}")
+        print(f"NIF: {self.nif}")
+        print(f"Seguridad social: {self.seguridad_social}")
+        print(f"Médico asignado: {self.medico.nombre}")
+
+
+
+
+def main():
+
+    print("=" * 55)
+    print("       SISTEMA DE CITAS - CENTRO DE SALUD")
+    print("=" * 55)
+
+    
+    medico1 = Medico(
+        "M001",
+        "Laura Gomez",
+        "1982-04-12",
+        "Medicina general",
+        4500000,
+        "Titular"
+    )
+
+   
+    horario1 = Horarios("Lun", 8, True)
+    horario2 = Horarios("Mar", 10, True)
+    horario3 = Horarios("Mie", 9, False)
+
+    
+    medico1.agregar_horario(horario1)
+    medico1.agregar_horario(horario2)
+    medico1.agregar_horario(horario3)
+
+   
+    paciente1 = Paciente(
+        "P001",
+        "Andres Perez",
+        "2001-11-20",
+        3,
+        "Masculino",
+        "Soltero",
+        "Calle 10 # 20-30",
+        "3001234567",
+        "680001",
+        "NIF001",
+        "SS001",
+        medico1
+    )
+
+    paciente2 = Paciente(
+        "P002",
+        "Maria Rodriguez",
+        "1995-06-15",
+        2,
+        "Femenino",
+        "Soltera",
+        "Carrera 15 # 30-40",
+        "3101234567",
+        "680002",
+        "NIF002",
+        "SS002",
+        medico1
+    )
+
+    
+    print("\n\n***** PRUEBA DE PERSONA *****")
+    medico1.mostrar()
+
+    
+    print("\n\n***** PRUEBA DE MEDICO *****")
+    print(
+        "Salario anual:",
+        f"${medico1.calcularSalarioAnual():,.0f}"
+    )
+    medico1.mostrar_horarios()
+
+    
+    print("\n\n***** PRUEBA DE HORARIOS *****")
+    horario1.mostrar()
+    horario2.mostrar()
+    horario3.mostrar()
+
+    
+    print("\n\n***** PRUEBA DE PACIENTE *****")
+    paciente1.mostrar()
+    paciente2.mostrar()
+
+   
+    print("\n\n***** RELACION MEDICO-PACIENTES *****")
+    medico1.mostrar_pacientes()
+
+    
+    print("\n\n***** VERIFICAR DISPONIBILIDAD *****")
+    print(
+        "Lunes a las 8:",
+        medico1.verificarDisponibilidad("Lun", 8)
+    )
+
+    
+    print("\n\n***** SOLICITAR CITA DISPONIBLE *****")
+    paciente1.solicitarCitas("Lun", 8)
+
+  
+    print("\n\n***** VERIFICAR HORARIO RESERVADO *****")
+    print(
+        "Lunes a las 8:",
+        medico1.verificarDisponibilidad("Lun", 8)
+    )
+
+    
+    print("\n\n***** INTENTAR RESERVAR HORARIO OCUPADO *****")
+    paciente2.solicitarCitas("Lun", 8)
+
+    
+    print("\n\n***** HORARIO NO REGISTRADO *****")
+    paciente2.solicitarCitas("Jue", 11)
+
+    
+    print("\n\n***** ESTADO FINAL DE LOS HORARIOS *****")
+    medico1.mostrar_horarios()
+
+    print("\nFIN DEL PROGRAMA")
+
+
+
+if __name__ == "__main__":
+    main()
